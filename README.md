@@ -31,9 +31,28 @@ make api                        # http://localhost:8000/healthz
 
 ## Architecture
 
-_Mermaid architecture diagram, 60-second demo script, per-state divergence walkthrough,
-swappability notes (vector store / LLM provider), and a "mocked vs real" section land in
-Phase 6._
+```mermaid
+flowchart LR
+    UI["Next.js UI 🔜"] -->|REST/JSON| REST["FastAPI<br/>endpoints ✅"]
+    REST --> WF["ClaimWorkflow<br/>pipeline 🔜"]
+    REST --> LOG["JSON logging<br/>+ PII redaction ✅"]
+    WF --> MATCH["Property match<br/>rapidfuzz 🔜"]
+    WF --> VS["VectorStore<br/>PgVectorStore ✅"]
+    WF --> REQ["Requirement reasoning<br/>deterministic + LLM 🔜"]
+    EMB["Embeddings client ✅"] --> GW["Ollama / OpenAI ✅"]
+    REQ --> GW
+    MATCH --> PG[("Postgres 16<br/>+ pgvector ✅")]
+    VS --> PG
+    EMB --> PG
+    WF --> PG
+```
+
+`✅` built (Phase 1) · `🔜` planned. Full diagram set — ER model, claim pipeline sequence,
+grounding guardrail, claim-status lifecycle, phased delivery — in
+[docs/architecture.md](docs/architecture.md).
+
+_60-second demo script, per-state divergence walkthrough, swappability notes, and the
+"mocked vs real" section are finalized in Phase 6._
 
 ## Key decisions
 
