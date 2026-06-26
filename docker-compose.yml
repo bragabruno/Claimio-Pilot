@@ -1,0 +1,22 @@
+# ClaimPilot — single datastore service (Postgres 16 + pgvector).
+# Relational data and embeddings live in the same container (see docs/adr/0001).
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: claimpilot-db
+    environment:
+      POSTGRES_USER: claimpilot
+      POSTGRES_PASSWORD: claimpilot
+      POSTGRES_DB: claimpilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U claimpilot -d claimpilot"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

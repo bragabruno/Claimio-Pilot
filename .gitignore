@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env / secrets
+.env
+.env.local
+
+# uv
+uv.lock.bak
+
+# Node / Next.js (Phase 5)
+node_modules/
+.next/
+out/
+
+# OS
+.DS_Store
+
+# Postgres volume (if ever mounted locally)
+pgdata/
