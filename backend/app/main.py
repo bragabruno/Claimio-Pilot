@@ -11,7 +11,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlalchemy import desc, select, text
 
+from app.api.claims import router as claims_router
 from app.api.properties import router as properties_router
+from app.api.states import router as states_router
 from app.db.base import SessionLocal
 from app.db.models import RunTrace
 from app.logging import configure_logging, get_logger
@@ -33,6 +35,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ClaimPilot API", version="0.1.0", lifespan=lifespan)
 app.include_router(properties_router)
+app.include_router(claims_router)
+app.include_router(states_router)
 
 
 @app.get("/")

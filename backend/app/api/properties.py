@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import SessionLocal
+from app.api.deps import get_session
 from app.match.pipeline import SearchResult, search
 from app.match.scoring import MatchQuery
 from app.schemas.match import (
@@ -18,11 +16,6 @@ from app.schemas.match import (
 )
 
 router = APIRouter(prefix="/properties", tags=["properties"])
-
-
-async def get_session() -> AsyncIterator[AsyncSession]:  # pragma: no cover - trivial
-    async with SessionLocal() as session:
-        yield session
 
 
 def _to_response(result: SearchResult) -> PropertySearchResponse:

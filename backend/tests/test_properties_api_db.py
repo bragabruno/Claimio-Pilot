@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from httpx import ASGITransport, AsyncClient
 
-from app.api.properties import get_session
+from app.api.deps import get_session
 from app.main import app
 from tests._helpers import make_property
 
