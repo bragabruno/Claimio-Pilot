@@ -23,5 +23,9 @@ out/
 # OS
 .DS_Store
 
+# Office documents (pitch deck) + temp lock files
+*.pptx
+~$*
+
 # Postgres volume (if ever mounted locally)
 pgdata/
