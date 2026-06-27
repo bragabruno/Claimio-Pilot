@@ -97,6 +97,10 @@ def build_dataset(seed: int = 42) -> tuple[list[Claimant], list[Property]]:
                 owner_deceased=(idx % 4 == 0 and not claimant.is_business),
                 reported_date=fake.date_between(start_date="-6y", end_date="-1y"),
                 status="unclaimed",
+                owner_is_business=claimant.is_business,
+                # Some holder reports carry corroborating identifiers; many do not.
+                owner_ssn_last4=claimant.ssn_last4 if idx % 2 == 0 else None,
+                owner_dob=claimant.dob if idx % 3 == 0 else None,
             )
         )
 
@@ -118,5 +122,40 @@ def build_dataset(seed: int = 42) -> tuple[list[Claimant], list[Property]]:
                     status="unclaimed",
                 )
             )
+
+    # --- Duplicate property record (the data-quality pass should detect + merge it) ---
+    if properties:
+        src = properties[0]
+        properties.append(
+            Property(
+                source_state=src.source_state,
+                holder_name=src.holder_name,
+                owner_name=src.owner_name,
+                owner_last_address=src.owner_last_address,
+                amount_cents=src.amount_cents,
+                property_type=src.property_type,
+                owner_deceased=src.owner_deceased,
+                reported_date=src.reported_date,
+                status="unclaimed",
+                owner_is_business=src.owner_is_business,
+                owner_ssn_last4=src.owner_ssn_last4,
+                owner_dob=src.owner_dob,
+            )
+        )
+
+    # --- Malformed / missing-data record (flagged by the data-quality pass) ---
+    properties.append(
+        Property(
+            source_state="CA",
+            holder_name=fake.company(),
+            owner_name=fake.name(),
+            owner_last_address=None,  # missing address
+            amount_cents=4_200,
+            property_type="uncashed_check",
+            owner_deceased=False,
+            reported_date=None,  # missing reported date
+            status="unclaimed",
+        )
+    )
 
     return claimants, properties

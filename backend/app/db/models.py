@@ -60,6 +60,11 @@ class Claimant(Base):
 
 class Property(Base):
     __tablename__ = "property"
+    __table_args__ = (
+        # GIN index supports the blocking step's `owner_name_tokens && :query_tokens`
+        # array-overlap predicate (see app/match/blocking.py).
+        Index("ix_property_owner_name_tokens_gin", "owner_name_tokens", postgresql_using="gin"),
+    )
 
     id: Mapped[uuid.UUID] = _uuid_col()
     source_state: Mapped[str] = mapped_column(String(2), nullable=False, index=True)
@@ -71,6 +76,19 @@ class Property(Base):
     owner_deceased: Mapped[bool] = mapped_column(nullable=False, default=False)
     reported_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(40), nullable=False, default="unclaimed")
+
+    # --- Reconciliation fields (Phase 2) ---
+    # Derived at ingestion for normalization + blocking.
+    normalized_owner_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    normalized_owner_address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    owner_name_tokens: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), nullable=False, default=list, server_default="{}"
+    )
+    owner_zip: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    # Corroborating identifiers a holder report sometimes includes (often absent).
+    owner_ssn_last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    owner_dob: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    owner_is_business: Mapped[bool] = mapped_column(nullable=False, default=False)
 
 
 class StateRuleDoc(Base):

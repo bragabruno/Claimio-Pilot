@@ -23,6 +23,7 @@ from app.db.models import (
     StateRuleDoc,
 )
 from app.logging import configure_logging, get_logger
+from app.match.normalize import canonical_name, name_tokens, normalize_address
 from app.seed.synthetic import build_dataset
 from app.services.chunking import chunk_markdown
 from app.services.embeddings import EmbeddingsClient
@@ -43,10 +44,21 @@ def _title_of(body_md: str, fallback: str) -> str:
     return fallback
 
 
+def _enrich_property_normalization(prop) -> None:
+    """Populate the derived normalization + blocking columns from raw owner fields."""
+    prop.normalized_owner_name = canonical_name(prop.owner_name)
+    prop.owner_name_tokens = sorted(name_tokens(prop.owner_name))
+    parts = normalize_address(prop.owner_last_address)
+    prop.normalized_owner_address = parts.normalized or None
+    prop.owner_zip = parts.zip
+
+
 async def load(embeddings: EmbeddingsClient | None = None) -> dict[str, int]:
     """Load all seed data. Returns inserted-row counts by entity."""
     embeddings = embeddings or EmbeddingsClient()
     claimants, properties = build_dataset()
+    for prop in properties:
+        _enrich_property_normalization(prop)
 
     async with SessionLocal() as session:
         for model in _CLEAR_ORDER:

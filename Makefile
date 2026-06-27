@@ -1,4 +1,4 @@
-.PHONY: install dev down migrate seed api test lint typecheck eval
+.PHONY: install dev down migrate seed api search test lint typecheck eval eval-match
 
 # Bring up the pgvector datastore (detached) and wait for health.
 dev:
@@ -26,6 +26,10 @@ seed:
 api:
 	cd backend && uv run uvicorn app.main:app --reload --port 8000
 
+# Matching pipeline CLI demo (ranked candidates + explanations) against the seeded index.
+search:
+	cd backend && uv run python -m app.match.cli
+
 test:
 	cd backend && uv run pytest -q
 
@@ -35,6 +39,9 @@ lint:
 typecheck:
 	cd backend && uv run mypy app
 
-# Eval harness — implemented in Phase 6.
-eval:
-	@echo "Eval harness lands in Phase 6 (see docs/adr/0003, 0004)."
+# MATCH eval set — precision/recall/F1 for the matching pipeline (Phase 2).
+eval-match:
+	uv run --project backend python evals/match/run.py
+
+# Aggregate eval harness — broadens in Phase 6; runs matching evals today.
+eval: eval-match
