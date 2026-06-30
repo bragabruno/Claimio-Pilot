@@ -12,6 +12,14 @@ from typing import TypedDict
 
 
 class StateMeta(TypedDict):
+    """Metadata for one demo state entry.
+
+    Attributes:
+        name: Human-readable state name.
+        slug: Stable slug used to map state rules markdown files and APIs.
+        notarization_threshold_cents: Synthetic claim-value threshold,
+            in cents, used by the demo notarization logic.
+    """
     name: str
     slug: str
     notarization_threshold_cents: int
@@ -30,10 +38,30 @@ STATE_CODES: list[str] = list(STATES.keys())
 
 
 def slug_for(code: str) -> str:
+    """Return the configured slug for a two-letter state code.
+
+    Args:
+        code: Two-letter state code key present in ``STATES``.
+
+    Returns:
+        The corresponding state slug.
+    """
     return STATES[code]["slug"]
 
 
 def code_for_slug(slug: str) -> str:
+    """Return the two-letter state code for a configured slug.
+
+    Args:
+        slug: State slug as stored in ``STATES`` and used by rule documents and
+            API payloads. Matching is case-sensitive.
+
+    Raises:
+        KeyError: If the slug does not match any configured demo state.
+
+    Returns:
+        The corresponding two-letter state code.
+    """
     for code, meta in STATES.items():
         if meta["slug"] == slug:
             return code
