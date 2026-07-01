@@ -44,6 +44,20 @@ class WorkflowResult:
     cost_cents: float
 
 
+@dataclass
+class ComputedClaim:
+    """Result of the compute stage (retrieval → requirements → letter), before persistence."""
+
+    state: str
+    items: list[RequiredItem]
+    citations: list[RetrievedChunk]
+    letter: str
+    needs_human_review: bool
+    steps: list[tuple[str, str]]
+    tokens: int
+    cost_cents: float
+
+
 async def _state_doc_title(session: AsyncSession, state: str) -> str:
     title = (
         await session.execute(select(StateRuleDoc.title).where(StateRuleDoc.state == state))
@@ -65,11 +79,11 @@ class ClaimWorkflow:
         self.store = store or PgVectorStore()
         self.top_k = top_k or settings.retrieval_top_k
 
-    async def run(
+    async def _compute(
         self, session: AsyncSession, claimant: Claimant, prop: Property
-    ) -> WorkflowResult:
+    ) -> ComputedClaim:
+        """Retrieval → requirements → letter. No persistence (shared by run + preview)."""
         state = prop.source_state
-
         query = build_claim_query(claimant, prop)
         citations = await retrieve_citations(
             session, state=state, query_text=query, k=self.top_k,
@@ -85,10 +99,7 @@ class ClaimWorkflow:
         letter = draft_letter(claimant, prop, items, title)
 
         needs_review = any(i.status == "needs_human_review" for i in items)
-        status = "needs_docs"
-        cost = estimate_cost_cents(self.llm.model, usage)
         top_score = citations[0].score if citations else 0.0
-
         steps: list[tuple[str, str]] = [
             ("retrieval", f"retrieved {len(citations)} rule chunks for {state} "
                           f"(top score {top_score:.2f})"),
@@ -96,48 +107,69 @@ class ClaimWorkflow:
             ("llm_requirements", f"{len(llm_items)} model-proposed items merged"),
             ("letter", "drafted claimant instruction letter"),
         ]
+        return ComputedClaim(
+            state=state, items=items, citations=citations, letter=letter,
+            needs_human_review=needs_review, steps=steps,
+            tokens=usage.total_tokens, cost_cents=estimate_cost_cents(self.llm.model, usage),
+        )
+
+    async def preview(
+        self, session: AsyncSession, claimant: Claimant, prop: Property
+    ) -> ComputedClaim:
+        """Compute requirements + letter WITHOUT persisting — powers the compare-states view."""
+        return await self._compute(session, claimant, prop)
+
+    async def run(
+        self, session: AsyncSession, claimant: Claimant, prop: Property
+    ) -> WorkflowResult:
+        computed = await self._compute(session, claimant, prop)
+        status = "needs_docs"
 
         citation_payload = [
             {
                 "chunk_id": str(c.chunk_id), "doc_id": str(c.doc_id), "state": c.state,
                 "score": round(c.score, 4), "text": c.text,
             }
-            for c in citations
+            for c in computed.citations
         ]
         claim = Claim(
-            claimant_id=claimant.id, property_id=prop.id, state=state, status=status,
-            required_items_json={"items": [i.model_dump(mode="json") for i in items]},
+            claimant_id=claimant.id, property_id=prop.id, state=computed.state, status=status,
+            required_items_json={"items": [i.model_dump(mode="json") for i in computed.items]},
             package_json={
-                "draft_letter": letter,
-                "needs_human_review": needs_review,
+                "draft_letter": computed.letter,
+                "needs_human_review": computed.needs_human_review,
                 "citations": citation_payload,
             },
         )
         session.add(claim)
         await session.flush()
 
+        steps = list(computed.steps)
         session.add(
             RunTrace(
                 claim_id=claim.id,
                 steps_json={
                     "steps": [{"step": s, "detail": d} for s, d in steps],
-                    "retrieval_hits": len(citations),
+                    "retrieval_hits": len(computed.citations),
                 },
-                tokens=usage.total_tokens,
-                cost_cents=round(cost),
+                tokens=computed.tokens,
+                cost_cents=round(computed.cost_cents),
             )
         )
         session.add(
             AuditEvent(
                 claim_id=claim.id, type="claim_created",
-                payload_json={"needs_human_review": needs_review, "item_count": len(items)},
+                payload_json={"needs_human_review": computed.needs_human_review,
+                              "item_count": len(computed.items)},
             )
         )
         await session.flush()
         steps.append(("persisted", f"claim {claim.id} status={status}"))
 
         return WorkflowResult(
-            claim_id=claim.id, claimant_id=claimant.id, property_id=prop.id, state=state,
-            status=status, needs_human_review=needs_review, items=items, citations=citations,
-            letter=letter, steps=steps, tokens=usage.total_tokens, cost_cents=cost,
+            claim_id=claim.id, claimant_id=claimant.id, property_id=prop.id,
+            state=computed.state, status=status,
+            needs_human_review=computed.needs_human_review, items=computed.items,
+            citations=computed.citations, letter=computed.letter, steps=steps,
+            tokens=computed.tokens, cost_cents=computed.cost_cents,
         )

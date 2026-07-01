@@ -34,6 +34,8 @@ class Settings(BaseSettings):
 
     # App
     log_level: str = "INFO"
+    # CORS origins allowed to call the API (the Next.js dev server by default).
+    cors_origins: list[str] = ["http://localhost:3000"]
 
 
 settings = Settings()

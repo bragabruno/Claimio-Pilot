@@ -62,6 +62,25 @@ class ClaimResponse(BaseModel):
     trace: TraceSummary
 
 
+class ClaimPreviewRequest(BaseModel):
+    """A hypothetical claim (no property record) — used by the compare-states view."""
+
+    state: str
+    amount_cents: int
+    owner_deceased: bool = False
+    is_business: bool = False
+    name: str | None = None
+
+
+class ClaimPreviewResponse(BaseModel):
+    state: str
+    needs_human_review: bool
+    required_items: list[RequiredItem]
+    citations: list[Citation]
+    draft_letter: str
+    trace: TraceSummary
+
+
 class StateRulesResponse(BaseModel):
     state: str
     title: str

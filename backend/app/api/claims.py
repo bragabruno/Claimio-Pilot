@@ -15,6 +15,8 @@ from app.db.models import Claim, Claimant, Property, RunTrace
 from app.schemas.claim import (
     Citation,
     ClaimCreateRequest,
+    ClaimPreviewRequest,
+    ClaimPreviewResponse,
     ClaimResponse,
     RequiredItem,
     TraceStep,
@@ -66,6 +68,45 @@ async def create_claim(
     result = await workflow.run(session, claimant, prop)
     await session.commit()
     return _result_to_response(result)
+
+
+@router.post("/preview", response_model=ClaimPreviewResponse)
+async def preview_claim(
+    payload: ClaimPreviewRequest,
+    session: AsyncSession = Depends(get_session),
+    workflow: ClaimWorkflow = Depends(get_workflow),
+) -> ClaimPreviewResponse:
+    """Compute a hypothetical claim's requirements for one state — no persistence.
+
+    Powers the compare-states view: call twice with the same claimant + amount and two states.
+    """
+    name = payload.name or "Prospective claimant"
+    claimant = Claimant(
+        full_name=name, is_business=payload.is_business, prior_names=[], addresses=[]
+    )
+    prop = Property(
+        source_state=payload.state.upper(), amount_cents=payload.amount_cents,
+        owner_deceased=payload.owner_deceased, holder_name="(preview)",
+        owner_name=name, property_type="preview",
+    )
+    computed = await workflow.preview(session, claimant, prop)
+    return ClaimPreviewResponse(
+        state=computed.state,
+        needs_human_review=computed.needs_human_review,
+        required_items=computed.items,
+        citations=[
+            Citation(
+                chunk_id=c.chunk_id, doc_id=c.doc_id, state=c.state, score=c.score, text=c.text
+            )
+            for c in computed.citations
+        ],
+        draft_letter=computed.letter,
+        trace=TraceSummary(
+            steps=[TraceStep(step=s, detail=d) for s, d in computed.steps],
+            retrieval_hits=len(computed.citations), tokens=computed.tokens,
+            cost_cents=computed.cost_cents,
+        ),
+    )
 
 
 @router.post("/{claim_id}/documents", response_model=DocumentUploadResponse)

@@ -7,11 +7,12 @@ The endpoint's commit is redirected to flush so nothing persists past the fixtur
 from __future__ import annotations
 
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import func, select
 
 from app.api.claims import get_workflow
 from app.api.deps import get_session
 from app.claims.workflow import ClaimWorkflow
-from app.db.models import RuleChunk, StateRuleDoc
+from app.db.models import Claim, RuleChunk, StateRuleDoc
 from app.main import app
 from app.services.vector_store import RetrievedChunk
 from tests._helpers import (
@@ -81,3 +82,50 @@ async def test_create_get_claim_and_state_rules(session):
             assert rules.json()["state"] == "CA"
     finally:
         app.dependency_overrides.clear()
+
+
+async def test_preview_claim_computes_without_persisting(session):
+    count_stmt = select(func.count()).select_from(Claim)
+    claims_before = (await session.execute(count_stmt)).scalar_one()
+
+    doc = StateRuleDoc(state="CA", title="California — demo", body_md="# x")
+    session.add(doc)
+    await session.flush()
+    chunks = [
+        RuleChunk(doc_id=doc.id, state="CA", text="Proof of Identity: photo ID.",
+                  embedding=unit_vector(0)),
+        RuleChunk(doc_id=doc.id, state="CA", text="Proof of Address: utility bill.",
+                  embedding=unit_vector(1)),
+        RuleChunk(doc_id=doc.id, state="CA",
+                  text="Notarization: claims over threshold require a notarized claim form.",
+                  embedding=unit_vector(2)),
+    ]
+    session.add_all(chunks)
+    await session.flush()
+    cite = RetrievedChunk(chunk_id=chunks[0].id, doc_id=doc.id, state="CA",
+                          text=chunks[0].text, score=0.9)
+
+    async def _override_session():
+        yield session
+
+    app.dependency_overrides[get_session] = _override_session
+    app.dependency_overrides[get_workflow] = lambda: ClaimWorkflow(
+        embeddings=StubEmbeddings(), llm=StubLLM(), store=StubStore([cite])
+    )
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/claims/preview", json={"state": "CA", "amount_cents": 150_000}
+            )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        labels = [i["label"] for i in data["required_items"]]
+        assert any("photo ID" in label for label in labels)
+        assert any("Notarized" in label for label in labels)  # 150_000 > CA threshold 100_000
+        assert "claim_id" not in data
+    finally:
+        app.dependency_overrides.clear()
+
+    # Preview must not persist a claim (count unchanged).
+    assert (await session.execute(count_stmt)).scalar_one() == claims_before
