@@ -29,3 +29,7 @@ out/
 
 # Postgres volume (if ever mounted locally)
 pgdata/
+
+# Browser-automation artifacts
+.playwright-mcp/
+claimpilot-*.png

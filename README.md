@@ -19,17 +19,17 @@ Built in runnable phases (see `docs/adr/0006`), committing after each.
 | 2 | Claimant↔property matching pipeline (normalize → block → score → explain) | ✅ done |
 | 3 | State-filtered RAG retrieval + grounded requirement reasoning + citations | ✅ done |
 | 4 | Document extraction + requirement satisfaction | ✅ done |
-| 5 | Next.js UI incl. the compare-states view | 🔜 planned |
-| 6 | Eval harness + observability + this README | ✅ done (backend) |
+| 5 | Next.js UI incl. the compare-states view | ✅ done |
+| 6 | Eval harness + observability + this README | ✅ done |
 
-The **entire backend pipeline is complete and exercisable via the API + CLI.** The web UI
-(Phase 5) is the remaining piece.
+**All six phases are complete** — the full pipeline is exercisable via the Next.js UI, the REST
+API, and the CLI.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    UI["Next.js UI 🔜"] -->|REST/JSON| REST["FastAPI endpoints ✅"]
+    UI["Next.js UI ✅"] -->|REST/JSON| REST["FastAPI endpoints ✅"]
     REST --> MATCH["Matching pipeline<br/>normalize·block·score ✅"]
     REST --> WF["ClaimWorkflow ✅"]
     REST --> DOC["Doc extraction ✅"]
@@ -59,6 +59,13 @@ make migrate                    # create schema (vector extension, HNSW/GIN inde
 #   ollama pull nomic-embed-text && ollama pull llama3.1
 make seed                       # synthetic claimants/properties + embedded state rules
 make api                        # http://localhost:8000  (/docs for the OpenAPI UI)
+```
+
+Frontend (Phase 5):
+
+```bash
+make web-install                # npm install (first time)
+make web                        # Next.js UI at http://localhost:3000
 ```
 
 Quality gates: `make test` (pytest), `make lint` (ruff), `make typecheck` (mypy),

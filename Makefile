@@ -1,4 +1,4 @@
-.PHONY: install dev down migrate seed api search test lint typecheck eval eval-match eval-requirements
+.PHONY: install dev down migrate seed api search web web-install test lint typecheck eval eval-match eval-requirements
 
 # Bring up the pgvector datastore (detached) and wait for health.
 dev:
@@ -29,6 +29,13 @@ api:
 # Matching pipeline CLI demo (ranked candidates + explanations) against the seeded index.
 search:
 	cd backend && uv run python -m app.match.cli
+
+# Frontend (Next.js) — Phase 5.
+web-install:
+	cd frontend && npm install
+
+web:
+	cd frontend && npm run dev
 
 test:
 	cd backend && uv run pytest -q
