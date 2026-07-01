@@ -114,9 +114,15 @@ def detect_mismatches(extracted: ExtractedDoc, claimant: Claimant, prop: Propert
 
 
 def _doc_confidence(extracted: ExtractedDoc) -> float:
+    """Mean confidence across the fields actually extracted.
+
+    Mean (not min) so a single uncertain peripheral field — e.g. a hard-to-read expiry date —
+    does not veto satisfying a requirement whose core identity fields were read confidently,
+    while broadly low-confidence extraction still fails the floor.
+    """
     present = [f for f in _CORE_FIELDS if getattr(extracted, f)]
     confs = [extracted.field_confidence.get(f, 0.0) for f in present]
-    return min(confs) if confs else 0.0
+    return sum(confs) / len(confs) if confs else 0.0
 
 
 def apply_satisfaction(

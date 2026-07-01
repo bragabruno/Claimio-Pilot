@@ -64,17 +64,25 @@ async def test_workflow_persists_grounded_claim(session):
     assert result.citations and result.citations[0].score == 0.91
 
 
-async def test_workflow_flags_human_review_when_chunk_missing(session):
-    # No address chunk → the address requirement cannot be grounded.
-    await _seed_state(session, "NY", with_address=False)
-    claimant = make_claimant("John Roe")
-    prop = make_property("John Roe", "5 Oak St", "NY", 10_000)
+async def test_workflow_flags_human_review_for_ungrounded_llm_item(session):
+    # An LLM-proposed item citing an invalid chunk index must be flagged, never shown as
+    # authoritative. (Seed-independent: does not rely on the absence of a committed chunk.)
+    doc, chunks = await _seed_state(session, "CA", with_address=True)
+    claimant = make_claimant("Maria Gonzalez")
+    prop = make_property("Maria Gonzalez", "1 Main St", "CA", 50_000)
     session.add_all([claimant, prop])
     await session.flush()
 
-    workflow = ClaimWorkflow(embeddings=StubEmbeddings(), llm=StubLLM(), store=StubStore([]))
+    cite = RetrievedChunk(chunk_id=chunks[0].id, doc_id=doc.id, state="CA",
+                          text=chunks[0].text, score=0.9)
+    ungrounded_llm = StubLLM({"items": [
+        {"label": "Unsupported extra document", "why": "no cite",
+         "requirement": "required", "source_index": 99},
+    ]})
+    workflow = ClaimWorkflow(embeddings=StubEmbeddings(), llm=ungrounded_llm,
+                             store=StubStore([cite]))
     result = await workflow.run(session, claimant, prop)
 
-    address_item = next(i for i in result.items if "address" in i.label.lower())
-    assert address_item.status == "needs_human_review"
+    flagged = next(i for i in result.items if i.label == "Unsupported extra document")
+    assert flagged.status == "needs_human_review"
     assert result.needs_human_review is True

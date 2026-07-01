@@ -84,7 +84,11 @@ async def test_upload_document_flags_mismatch(session):
 
     wrong_name = {"doc_type": "drivers_license", "name": "Robert Carter",
                   "field_confidence": {"name": 0.95}}
-    app.dependency_overrides[get_session] = lambda: _yield(session)
+
+    async def _override_session():
+        yield session
+
+    app.dependency_overrides[get_session] = _override_session
     app.dependency_overrides[get_document_processor] = lambda: DocumentProcessor(
         llm=StubLLM(wrong_name)
     )
@@ -102,7 +106,3 @@ async def test_upload_document_flags_mismatch(session):
         assert data["required_items"][0]["satisfied_by_uploaded_doc"] is False
     finally:
         app.dependency_overrides.clear()
-
-
-async def _yield(session):
-    yield session
