@@ -171,15 +171,15 @@ sequenceDiagram
 ## 4. Grounding guardrail (decision flow)
 
 Every requirement item must cite a retrieved rule chunk; otherwise it is routed to human
-review (see `docs/adr/0003`). 🔜 enforced in Phase 3.
+review (see `docs/adr/0003`). Enforced in Phase 3.
 
 ```mermaid
 flowchart TD
-    START([Candidate requirement item]) --> CITE{Cites a<br/>rule_chunk?}
+    START([Candidate requirement item]) --> CITE{"Cites a<br/>rule_chunk?"}
     CITE -- No --> HR[["needs_human_review"]]
-    CITE -- Yes --> RCONF{Retrieval<br/>confidence ok?}
+    CITE -- Yes --> RCONF{"Retrieval<br/>confidence ok?"}
     RCONF -- No --> HR
-    RCONF -- Yes --> ECONF{Extraction<br/>confidence ok?<br/>(if doc-backed)}
+    RCONF -- Yes --> ECONF{"Extraction<br/>confidence ok?<br/>(if doc-backed)"}
     ECONF -- No --> HR
     ECONF -- Yes --> OK[[Grounded required item<br/>with source_rule_chunk_id]]
 ```
