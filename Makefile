@@ -1,4 +1,8 @@
-.PHONY: install dev down migrate seed api search web web-install test lint typecheck eval eval-match eval-requirements
+.PHONY: install dev down migrate seed api search web web-install demo test lint typecheck eval eval-match eval-requirements
+
+# One-command walkthrough: db + migrate + seed + API + web UI (Ctrl-C to stop).
+demo:
+	./scripts/demo.sh
 
 # Bring up the pgvector datastore (detached) and wait for health.
 dev:

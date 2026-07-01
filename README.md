@@ -50,6 +50,18 @@ guardrail, claim-status lifecycle, phased delivery — in [docs/architecture.md]
 
 ## Quickstart
 
+One command (db + migrate + seed + API + web UI; Ctrl-C to stop):
+
+```bash
+cp .env.example .env
+make web-install                # first time only (npm install)
+make demo                       # → API :8000 · UI :3000
+# Local Ollama without the default llama3.1? Use a model you have:
+#   LLM_MODEL=llama3.2:3b make demo
+```
+
+Or step by step:
+
 ```bash
 cp .env.example .env            # defaults target a local Ollama gateway
 make install                    # uv sync (backend deps)
