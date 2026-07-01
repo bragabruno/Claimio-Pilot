@@ -9,7 +9,7 @@
 ---
 
 ## Confirm with me first
-1. **Output location** — default `~/Developer-local/repo-evolution/` (a *sibling* of `Claimio-Pilot`, NOT inside it).
+1. **Output location** — default `~/Developer-local/repo-evolution/` (a *sibling* of `claim-pilot`, NOT inside it).
 2. **App flavor** — a tiny generic service is fine; a small claims/recovery-flavored API is a nice touch for my audience. Keep it minimal either way.
 
 ## Hard scope rules (do NOT over-build)

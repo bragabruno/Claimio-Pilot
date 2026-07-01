@@ -8,7 +8,7 @@
 ---
 
 ## Confirm with me first
-1. **Output location** — default `~/Developer-local/repo-evolution/` (a *sibling* of `Claimio-Pilot`, NOT inside it). Confirm or change.
+1. **Output location** — default `~/Developer-local/repo-evolution/` (a *sibling* of `claim-pilot`, NOT inside it). Confirm or change.
 2. **App flavor** — a tiny generic service is fine; a small claims/recovery-flavored API is a nice touch for my audience. Keep it minimal either way.
 3. **Layout** —
    - **(A)** three sibling folders `stage-1-founder/`, `stage-2-hardening/`, `stage-3-team/` (easiest to show side by side). **Default.**
