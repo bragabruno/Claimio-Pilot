@@ -1,4 +1,4 @@
-.PHONY: install dev down migrate seed api search test lint typecheck eval eval-match
+.PHONY: install dev down migrate seed api search test lint typecheck eval eval-match eval-requirements
 
 # Bring up the pgvector datastore (detached) and wait for health.
 dev:
@@ -43,5 +43,9 @@ typecheck:
 eval-match:
 	uv run --project backend python evals/match/run.py
 
-# Aggregate eval harness — broadens in Phase 6; runs matching evals today.
-eval: eval-match
+# REQUIREMENT eval set — precision/recall + flag accuracy for requirement reasoning (Phase 3).
+eval-requirements:
+	uv run --project backend python evals/requirements/run.py
+
+# Aggregate eval harness — matching + requirement golden sets.
+eval: eval-match eval-requirements

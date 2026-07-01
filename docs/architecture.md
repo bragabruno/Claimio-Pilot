@@ -2,7 +2,7 @@
 
 > **Demonstration system. Synthetic data. Not legal advice.**
 >
-> Legend for build status: ✅ built in Phase 1 · 🔜 planned (later phase, per `docs/adr/0006`).
+> Legend for build status: ✅ built (Phases 1–4) · 🔜 planned (Phase 5 UI, per `docs/adr/0006`).
 > Diagrams document the intended design; nodes touching unbuilt pipeline steps are marked 🔜.
 
 ## 1. System architecture
@@ -206,10 +206,10 @@ Runnable phases, one Linear issue each (BRA-920…925). See `docs/adr/0006`.
 ```mermaid
 flowchart LR
     P1["Phase 1 ✅<br/>Scaffold + datastore<br/>+ model + seed + embeddings"]
-    P2["Phase 2 🔜<br/>Property match<br/>(rapidfuzz)"]
-    P3["Phase 3 🔜<br/>RAG + grounded<br/>requirements"]
-    P4["Phase 4 🔜<br/>Doc extraction<br/>+ satisfaction"]
+    P2["Phase 2 ✅<br/>Property match<br/>(rapidfuzz)"]
+    P3["Phase 3 ✅<br/>RAG + grounded<br/>requirements"]
+    P4["Phase 4 ✅<br/>Doc extraction<br/>+ satisfaction"]
     P5["Phase 5 🔜<br/>Next.js UI<br/>+ compare-states"]
-    P6["Phase 6 🔜<br/>Evals + trace<br/>+ README"]
+    P6["Phase 6 ✅<br/>Evals + trace<br/>+ README"]
     P1 --> P2 --> P3 --> P4 --> P5 --> P6
 ```
